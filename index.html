@@ -194,7 +194,7 @@
       margin-bottom: var(--space-section);
     }
 
-    /* Сетка карточек */
+    /* Карточки режимов */
     .masonry-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -288,7 +288,7 @@
       max-width: 600px;
     }
 
-    /* Модальное окно */
+    /* Модальное окно для ПК */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -508,7 +508,7 @@
     <div class="modal-window" id="modalWindow">
       <div class="loading-hint" id="loadingHint">
         <div class="spinner"></div>
-        <span>Инициализация тренажёра...</span>
+        <span>Загрузка сцены...</span>
       </div>
 
       <div class="modal-controls">
@@ -562,7 +562,7 @@
     let lastUserClickTime = 0;
     let clickedExitArea = false;
 
-    // Проверка мобильных систем (iOS / iPadOS / Android)
+    // Точная проверка мобильных устройств (iOS, iPadOS, Android)
     const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -676,21 +676,20 @@
     }
 
     function launchGame() {
-      // 1. Для iOS и смартфонов: открываем файл игры напрямую в текущей вкладке
-      // Safari блокирует SharedArrayBuffer внутри iframe
+      // 1. Мобильные устройства (iOS / Android): открываем облегчённую сборку на весь экран
       if (isMobileDevice) {
-        window.location.href = 'aimtrainer.exe.html';
+        window.location.href = 'aimtrainer_mobile.html';
         return;
       }
 
-      // 2. Для ПК: запуск в модальном окне
+      // 2. ПК: запускаем полную версию в модальном окне
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
       isStretched = false;
       isGodotRunning = false;
       clickedExitArea = false;
-      loadingHint.style.opacity = '1';
+      if (loadingHint) loadingHint.style.opacity = '1';
       
       modal.classList.remove('is-stretched-view');
       modalWindow.classList.remove('is-stretched-view');
@@ -700,7 +699,6 @@
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
 
-      // Перезагрузка фрейма с отсечением кэша для исключения зависаний WebAssembly
       gameFrame.src = 'aimtrainer.exe.html';
 
       gameFrame.onload = () => {
