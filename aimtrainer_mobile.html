@@ -17,10 +17,18 @@ body {
 	background-color: black;
 	overflow: hidden;
 	touch-action: none;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	user-select: none;
+	overscroll-behavior: none;
 }
 
 #canvas {
 	display: block;
+	touch-action: none !important;
+	-webkit-touch-callout: none !important;
+	-webkit-user-select: none !important;
+	user-select: none !important;
 }
 
 #canvas:focus {
