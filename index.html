@@ -46,20 +46,8 @@
       color: var(--body);
       line-height: 1.4;
       -webkit-font-smoothing: antialiased;
-      touch-action: none;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
-      overscroll-behavior: none;
-    }
-    canvas, #canvas {
-      touch-action: none !important;
-      -webkit-touch-callout: none !important;
-      -webkit-user-select: none !important;
-      user-select: none !important;
     }
 
-    /* Навигация */
     .header {
       position: sticky;
       top: 0;
@@ -174,7 +162,6 @@
       padding: 0 var(--space-xl);
     }
 
-    /* Hero */
     .hero {
       padding: var(--space-section) 0 calc(var(--space-section) / 2);
       text-align: center;
@@ -205,7 +192,6 @@
       margin-bottom: var(--space-section);
     }
 
-    /* Карточки режимов */
     .masonry-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -299,7 +285,7 @@
       max-width: 600px;
     }
 
-    /* Модальное окно для ПК */
+    /* Модальное окно игры для ПК */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -421,7 +407,6 @@
 
     @media (max-width: 640px) {
       .masonry-grid { grid-template-columns: 1fr; }
-      .nav-menu .filter-chip { display: none; }
       .hero-cta-group { flex-direction: column; }
     }
   </style>
@@ -435,7 +420,7 @@
         <span>AimPoint</span>
       </a>
       <div class="nav-menu">
-        
+        <a href="#modes" class="filter-chip">Режимы</a>
         <button type="button" class="btn-primary trigger-play">Начать тренировку</button>
       </div>
     </div>
@@ -443,9 +428,9 @@
 
   <main class="container">
     <section class="hero">
-      <h1 class="display-headline">Легкая тренировка для всех.</h1>
+      <h1 class="display-headline">Чистая точность. Без лишнего шума.</h1>
       <p class="hero-lead">
-        Минималистичный тренажёр руки для тренировки микронаводки мгновенный запуск и ничего лишнего.
+        Минималистичный тренажёр мыши для тренировки первого выстрела, микродоводки и трекинга. Прямой отклик курсора, мгновенный запуск и ничего лишнего.
       </p>
       <div class="hero-cta-group">
         <button type="button" class="btn-primary trigger-play">Играть бесплатно</button>
@@ -513,7 +498,6 @@
     </section>
   </main>
 
-  <!-- Окно игры -->
   <div id="gameModal" class="modal-backdrop">
     <div class="modal-window" id="modalWindow">
       <div class="loading-hint" id="loadingHint">
@@ -563,18 +547,19 @@
     const toggleNativeFullscreenBtn = document.getElementById('toggleNativeFullscreenBtn');
     const stretchExpandIcon = document.getElementById('stretchExpandIcon');
     const stretchCollapseIcon = document.getElementById('stretchCollapseIcon');
-    const gameFrame = document.getElementById('gameFrame');
+    let gameFrame = document.getElementById('gameFrame');
     const loadingHint = document.getElementById('loadingHint');
 
     let isStretched = false;
-    let lastGodotFrame = performance.now();
-    let isGodotRunning = false;
-    let lastUserClickTime = 0;
-    let clickedExitArea = false;
 
-    // Точная проверка мобильных устройств (iOS, iPadOS, Android)
-    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // Определение смартфонов и планшетов
+    function checkIsMobile() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      const isIPadTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isSmallScreen = window.matchMedia('(pointer: coarse) and (max-width: 900px)').matches;
+      return isMobileUA || isIPadTouch || isSmallScreen;
+    }
 
     function setupGameHooks(cw) {
       if (!cw || cw._hooksAttached) return;
@@ -584,66 +569,12 @@
       if (origRAF) {
         cw.requestAnimationFrame = function(callback) {
           return origRAF.call(cw, function(timestamp) {
-            lastGodotFrame = performance.now();
-            isGodotRunning = true;
             if (loadingHint) loadingHint.style.opacity = '0';
             callback(timestamp);
           });
         };
       }
-
-      const AudioCtx = cw.AudioContext || cw.webkitAudioContext;
-      if (AudioCtx && AudioCtx.prototype) {
-        const origAudioClose = AudioCtx.prototype.close;
-        AudioCtx.prototype.close = function() {
-          stopGame();
-          return origAudioClose.apply(this, arguments);
-        };
-      }
-
-      const bindContextLost = (canvas) => {
-        canvas.addEventListener('webglcontextlost', stopGame);
-      };
-
-      cw.addEventListener('DOMContentLoaded', () => {
-        cw.document.querySelectorAll('canvas').forEach(bindContextLost);
-      });
-      cw.document.querySelectorAll('canvas').forEach(bindContextLost);
-
-      cw.addEventListener('pointerdown', (e) => {
-        lastUserClickTime = performance.now();
-        const w = cw.innerWidth || 1;
-        const h = cw.innerHeight || 1;
-        const nx = e.clientX / w;
-        const ny = e.clientY / h;
-
-        if (nx >= 0.35 && nx <= 0.65 && ny >= 0.57 && ny <= 0.72) {
-          clickedExitArea = true;
-        } else {
-          clickedExitArea = false;
-        }
-      }, true);
-
-      cw.close = stopGame;
     }
-
-    // Сторож остановки рендера
-    setInterval(() => {
-      if (modal.style.display !== 'flex' || !isGodotRunning || document.hidden) return;
-
-      const now = performance.now();
-      const timeSinceFrame = now - lastGodotFrame;
-      const timeSinceClick = now - lastUserClickTime;
-
-      if (clickedExitArea && timeSinceClick < 3000 && timeSinceFrame > 200) {
-        stopGame();
-        return;
-      }
-
-      if (timeSinceClick < 4000 && timeSinceFrame > 2500) {
-        stopGame();
-      }
-    }, 80);
 
     function toggleStretchMode() {
       if (document.fullscreenElement) {
@@ -661,7 +592,7 @@
         stretchExpandIcon.style.display = 'block';
         stretchCollapseIcon.style.display = 'none';
       }
-      gameFrame.focus();
+      if (gameFrame) gameFrame.focus();
     }
 
     async function toggleNativeFullscreen() {
@@ -682,25 +613,23 @@
           await document.exitFullscreen();
         }
       } catch (e) {}
-      gameFrame.focus();
+      if (gameFrame) gameFrame.focus();
     }
 
     function launchGame() {
-      // 1. Мобильные устройства (iOS / Android): открываем облегчённую сборку на весь экран
-      if (isMobileDevice) {
+      // 1. Мобильные: прямой переход
+      if (checkIsMobile()) {
         window.location.href = 'aimtrainer_mobile.html';
         return;
       }
 
-      // 2. ПК: запускаем полную версию в модальном окне
+      // 2. ПК: модальное окно
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
       isStretched = false;
-      isGodotRunning = false;
-      clickedExitArea = false;
       if (loadingHint) loadingHint.style.opacity = '1';
-      
+
       modal.classList.remove('is-stretched-view');
       modalWindow.classList.remove('is-stretched-view');
       stretchExpandIcon.style.display = 'block';
@@ -720,20 +649,35 @@
       };
     }
 
+    // Полная остановка игры и принудительная очистка оперативной памяти
     function stopGame() {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
+
       modal.style.display = 'none';
-      gameFrame.src = 'about:blank';
       document.body.style.overflow = '';
-      isGodotRunning = false;
       isStretched = false;
-      clickedExitArea = false;
       modal.classList.remove('is-stretched-view');
       modalWindow.classList.remove('is-stretched-view');
+
+      // 1. Сбрасываем текущий фрейм
+      try {
+        gameFrame.src = 'about:blank';
+      } catch (e) {}
+
+      // 2. Полное удаление и пересоздание узла iframe для освобождения памяти (WASM, Audio, WebGL)
+      const parent = gameFrame.parentNode;
+      const oldFrame = gameFrame;
+      const newFrame = oldFrame.cloneNode(false);
+      newFrame.src = 'about:blank';
+      parent.replaceChild(newFrame, oldFrame);
+
+      // 3. Обновляем переменную gameFrame на новый чистый элемент
+      gameFrame = newFrame;
     }
 
+    // Приём сигнала 'close_game' от Godot при нажатии «Выход» в меню паузы
     window.addEventListener('message', (event) => {
       if (event.data && (event.data.type === 'close_game' || event.data === 'close_game')) {
         stopGame();
@@ -751,19 +695,11 @@
     toggleNativeFullscreenBtn.addEventListener('click', toggleNativeFullscreen);
     closeBtn.addEventListener('click', stopGame);
 
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal && !isStretched && !document.fullscreenElement) {
-        stopGame();
-      }
-    });
-
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal.style.display === 'flex') {
         if (document.fullscreenElement) return;
         if (isStretched) {
           toggleStretchMode();
-        } else {
-          stopGame();
         }
       }
     });
