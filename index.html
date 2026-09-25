@@ -4,705 +4,708 @@
   <script src="coi-serviceworker.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AimPoint — Тренажёр точности стрельбы</title>
+  <title>AimPoint — Kinetic 3D Simulation</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
   <style>
     :root {
-      --primary: #e60023;
-      --primary-pressed: #cc001f;
-      --canvas: #ffffff;
-      --surface-soft: #fbfbf9;
-      --surface-card: #f6f6f3;
-      --secondary-bg: #e5e5e0;
-      --secondary-pressed: #c8c8c1;
-      --ink: #000000;
-      --body: #33332e;
-      --charcoal: #262622;
-      --mute: #62625b;
-      --hairline: #dadad3;
-      --radius-sm: 8px;
-      --radius-md: 16px;
-      --radius-lg: 32px;
-      --radius-full: 9999px;
-      --space-sm: 8px;
-      --space-md: 12px;
-      --space-lg: 16px;
-      --space-xl: 24px;
-      --space-xxl: 32px;
-      --space-section: 64px;
+      --bg: #030712;
+      --cyan: #00e5ff;
+      --cyan-glow: rgba(0, 229, 255, 0.45);
+      --red: #ff2a55;
+      --red-glow: rgba(255, 42, 85, 0.45);
+      --hud-border: rgba(0, 229, 255, 0.25);
+      --hud-dim: #446082;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui: 'Space Grotesk', sans-serif;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    
     body {
-      font-family: 'Pin Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--surface-soft);
-      color: var(--body);
-      line-height: 1.4;
-      -webkit-font-smoothing: antialiased;
+      background-color: var(--bg);
+      color: #e6f3ff;
+      font-family: var(--font-mono);
+      overflow-x: hidden;
+      min-height: 195vh;
     }
 
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background-color: var(--canvas);
-      border-bottom: 1px solid var(--hairline);
-      height: 64px;
-      display: flex;
-      align-items: center;
-      padding: 0 var(--space-xl);
-    }
-
-    .nav-container {
-      max-width: 1280px;
-      width: 100%;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      text-decoration: none;
-      color: var(--ink);
-      font-weight: 700;
-      font-size: 18px;
-      letter-spacing: -0.4px;
-    }
-
-    .brand-mark {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-full);
-      background-color: var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--canvas);
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    .nav-menu {
-      display: flex;
-      gap: var(--space-md);
-      align-items: center;
-    }
-
-    .filter-chip {
-      background-color: var(--surface-card);
-      color: var(--ink);
-      font-size: 14px;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: var(--radius-full);
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-    }
-
-    .filter-chip:hover {
-      background-color: var(--secondary-bg);
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: 700;
-      height: 40px;
-      padding: 0 18px;
-      border-radius: var(--radius-md);
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .btn-primary:active {
-      background-color: var(--primary-pressed);
-    }
-
-    .btn-secondary {
-      background-color: var(--secondary-bg);
-      color: var(--ink);
-      font-size: 14px;
-      font-weight: 700;
-      height: 40px;
-      padding: 0 18px;
-      border-radius: var(--radius-md);
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-secondary:active {
-      background-color: var(--secondary-pressed);
-    }
-
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 var(--space-xl);
-    }
-
-    .hero {
-      padding: var(--space-section) 0 calc(var(--space-section) / 2);
-      text-align: center;
-    }
-
-    .display-headline {
-      font-size: clamp(38px, 6vw, 70px);
-      font-weight: 600;
-      line-height: 1.1;
-      letter-spacing: -1.2px;
-      color: var(--ink);
-      max-width: 860px;
-      margin: 0 auto 16px;
-    }
-
-    .hero-lead {
-      font-size: 16px;
-      line-height: 1.4;
-      color: var(--body);
-      max-width: 580px;
-      margin: 0 auto 28px;
-    }
-
-    .hero-cta-group {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-md);
-      margin-bottom: var(--space-section);
-    }
-
-    .masonry-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-sm);
-      margin-bottom: var(--space-section);
-    }
-
-    .pin-card {
-      background-color: var(--surface-card);
-      border-radius: var(--radius-md);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 320px;
-    }
-
-    .pin-visual {
-      flex: 1;
-      position: relative;
-      background: #ecece7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-lg);
-    }
-
-    .pin-overlay-pill {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background-color: var(--canvas);
-      color: var(--ink);
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 12px;
-      border-radius: var(--radius-full);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      z-index: 2;
-    }
-
-    .pin-content {
-      padding: var(--space-lg);
-      background-color: var(--surface-card);
-    }
-
-    .pin-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--ink);
-      margin-bottom: 6px;
-      letter-spacing: -0.2px;
-    }
-
-    .pin-desc {
-      font-size: 14px;
-      color: var(--mute);
-      line-height: 1.35;
-    }
-
-    .stat-display {
-      font-size: 54px;
-      font-weight: 700;
-      letter-spacing: -1.2px;
-      color: var(--ink);
-    }
-
-    .feature-card {
-      background-color: var(--canvas);
-      border-radius: var(--radius-lg);
-      padding: var(--space-xxl);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-xl);
-      margin-bottom: var(--space-section);
-      border: 1px solid var(--hairline);
-    }
-
-    .feature-text h2 {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.8px;
-      color: var(--ink);
-      margin-bottom: 10px;
-    }
-
-    .feature-text p {
-      font-size: 16px;
-      color: var(--body);
-      max-width: 600px;
-    }
-
-    /* Модальное окно игры для ПК */
-    .modal-backdrop {
+    #webgl-canvas {
       position: fixed;
       inset: 0;
-      background-color: rgba(0, 0, 0, 0.75);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-      padding: var(--space-lg);
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      display: block;
     }
 
-    .modal-window {
-      background-color: #000;
-      border-radius: var(--radius-lg);
-      width: min(1200px, 96vw);
-      height: min(800px, 90vh);
-      position: relative;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      overflow: hidden;
+    .crosshair-center {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px; height: 20px;
+      pointer-events: none; z-index: 5; opacity: 0.35;
+    }
+    .crosshair-center::before { content:''; position:absolute; top:9px; left:0; width:20px; height:2px; background:var(--cyan); }
+    .crosshair-center::after { content:''; position:absolute; top:0; left:9px; width:2px; height:20px; background:var(--cyan); }
+
+    /* Угловой HUD */
+    .hud-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      padding: 30px 40px;
+      pointer-events: none;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--hud-dim);
+      text-transform: uppercase;
+    }
+    .hud-row { display: flex; justify-content: space-between; width: 100%; }
+    .hud-corner { position: relative; padding: 6px 12px; }
+    .hud-corner::before {
+      content: ""; position: absolute; width: 12px; height: 12px;
+      border-color: var(--cyan); border-style: solid;
+    }
+    .top-left::before { top:0; left:0; border-width: 2px 0 0 2px; }
+    .top-right::before { top:0; right:0; border-width: 2px 2px 0 0; text-align:right; }
+    .bottom-left::before { bottom:0; left:0; border-width: 0 0 2px 2px; }
+    .bottom-right::before { bottom:0; right:0; border-width: 0 2px 2px 0; text-align:right; }
+    .status-active { color: var(--cyan); }
+
+    .scroll-hint {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      opacity: 0.6;
+      z-index: 10;
+      pointer-events: none;
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 0.3; transform: translate(-50%, 0); } 50% { opacity: 0.8; transform: translate(-50%, 5px); } }
+
+    /* Нижний контентный блок при скролле */
+    .content-stream {
+      position: relative;
+      z-index: 10;
+      margin-top: 105vh;
+      padding: 60px 40px 120px;
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+      pointer-events: none;
     }
 
-    .modal-backdrop.is-stretched-view {
-      padding: 0;
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      pointer-events: auto;
+      margin-bottom: 40px;
     }
 
-    .modal-window.is-stretched-view {
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: 100vw !important;
-      max-height: 100vh !important;
-      border-radius: 0 !important;
+    .spec-card {
+      background: rgba(4, 12, 28, 0.88);
+      border: 1px solid var(--hud-border);
+      padding: 24px;
+      border-radius: 4px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 25px rgba(0, 229, 255, 0.08);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .spec-card:hover { border-color: var(--cyan); transform: translateY(-2px); }
+    .spec-num { font-size: 11px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 8px; font-weight: 700; }
+    .spec-title { font-family: var(--font-ui); font-size: 18px; margin-bottom: 10px; color: #fff; }
+    .spec-desc { font-size: 12px; color: #7f99b8; line-height: 1.6; }
+
+    /* Нижняя секция запуска */
+    .bottom-cta-box {
+      pointer-events: auto;
+      text-align: center;
+      background: rgba(4, 12, 28, 0.88);
+      border: 1px solid var(--hud-border);
+      padding: 36px 24px;
+      border-radius: 4px;
+      backdrop-filter: blur(12px);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .bottom-cta-box h2 {
+      font-family: var(--font-ui);
+      font-size: 22px;
+      letter-spacing: 1px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .bottom-cta-box p {
+      font-size: 12px;
+      color: #7f99b8;
+      margin-bottom: 24px;
+      line-height: 1.5;
     }
 
-    .modal-controls {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      display: flex;
-      gap: 8px;
-      z-index: 100;
+    /* Контекстное меню мишени */
+    .hud-dialog {
+      position: fixed;
+      transform: translateY(-50%);
+      background: rgba(3, 10, 22, 0.95);
+      border: 1px solid var(--cyan);
+      padding: 18px 22px;
+      min-width: 240px;
+      border-radius: 4px;
+      box-shadow: 0 0 35px rgba(0, 229, 255, 0.35);
+      backdrop-filter: blur(12px);
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 50;
+    }
+    
+    /* Мостик для наведения мыши с правильным z-index, чтобы не перекрывать кнопку */
+    .hud-dialog::before { 
+      content: ''; 
+      position: absolute; 
+      top: -30px; bottom: -30px; left: -50px; right: -50px; 
+      z-index: -1;
+      pointer-events: auto;
     }
 
+    .hud-dialog.active { opacity: 1; visibility: visible; pointer-events: auto; }
+    .hud-dialog.red-theme { border-color: var(--red); box-shadow: 0 0 35px rgba(255, 42, 85, 0.35); }
+    .dialog-header { font-size: 11px; letter-spacing: 1.5px; color: var(--cyan); margin-bottom: 5px; font-weight: 700; }
+    .hud-dialog.red-theme .dialog-header { color: var(--red); }
+    .dialog-meta { font-size: 10px; color: var(--hud-dim); margin-bottom: 16px; letter-spacing: 1px; line-height: 1.5; }
+
+    .btn-play-trigger {
+      position: relative;
+      z-index: 2;
+      width: 100%; background: var(--cyan); color: #030a16; border: none;
+      font-family: var(--font-ui); font-size: 13px; font-weight: 700; letter-spacing: 1.2px;
+      padding: 13px 20px; border-radius: 4px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.18s ease; box-shadow: 0 0 16px var(--cyan-glow);
+    }
+    .btn-play-trigger:hover { background: #fff; box-shadow: 0 0 25px #fff; transform: translateY(-1px); }
+    .hud-dialog.red-theme .btn-play-trigger { background: var(--red); color: #fff; box-shadow: 0 0 16px var(--red-glow); }
+    .hud-dialog.red-theme .btn-play-trigger:hover { background: #fff; color: #000; box-shadow: 0 0 25px #fff; }
+
+    .btn-bottom-play {
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    /* Модальное окно десктопной игры */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(2, 6, 14, 0.95);
+      backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;
+      z-index: 2000; padding: 24px;
+    }
+    .modal-window {
+      background: #000; border: 1px solid var(--hud-border); border-radius: 6px;
+      width: min(1280px, 96vw); height: min(800px, 90vh); position: relative;
+      box-shadow: 0 0 60px rgba(0, 229, 255, 0.15); overflow: hidden; display: flex; flex-direction: column;
+    }
+    .modal-backdrop.is-stretched-view { padding: 0; }
+    .modal-window.is-stretched-view { width: 100vw!important; height: 100vh!important; max-width: 100vw!important; max-height: 100vh!important; border-radius: 0!important; border: none!important; }
+    .modal-controls { position: absolute; top: 14px; right: 14px; display: flex; gap: 8px; z-index: 100; }
     .modal-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-full);
-      background-color: rgba(255, 255, 255, 0.9);
-      border: none;
-      color: var(--ink);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s, transform 0.1s;
+      width: 38px; height: 38px; border-radius: 4px; background: rgba(6, 14, 28, 0.85);
+      border: 1px solid var(--hud-border); color: #9ac2e6; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;
     }
-
-    .modal-btn:hover {
-      background-color: #ffffff;
-      transform: scale(1.05);
-    }
-
-    .modal-btn:active {
-      transform: scale(0.95);
-    }
-
-    .game-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background-color: #000;
-      flex: 1;
-    }
+    .modal-btn:hover { background: var(--cyan); color: #000; border-color: var(--cyan); box-shadow: 0 0 14px var(--cyan); }
+    .game-frame { width: 100%; height: 100%; border: none; background: #000; flex: 1; }
 
     .loading-hint {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 500;
-      pointer-events: none;
-      gap: 12px;
-      background: #000;
-      z-index: 1;
-      transition: opacity 0.3s;
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: var(--cyan); font-size: 13px; letter-spacing: 2px; pointer-events: none; gap: 14px; background: #000; z-index: 1;
     }
-
     .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      width: 36px; height: 36px; border: 2px solid rgba(0, 229, 255, 0.2); border-top-color: var(--cyan);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .footer {
-      background-color: var(--canvas);
-      border-top: 1px solid var(--hairline);
-      padding: var(--space-xxl) var(--space-xl);
-      text-align: center;
-      font-size: 12px;
-      color: var(--mute);
-    }
-
-    @media (max-width: 1024px) {
-      .masonry-grid { grid-template-columns: repeat(2, 1fr); }
-      .feature-card { flex-direction: column; align-items: flex-start; }
-    }
-
-    @media (max-width: 640px) {
-      .masonry-grid { grid-template-columns: 1fr; }
-      .hero-cta-group { flex-direction: column; }
+    @media (max-width: 768px) {
+      .hud-layer { padding: 18px 20px; font-size: 9px; }
+      .content-stream { padding: 20px; }
+      .scroll-hint { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <header class="header">
-    <div class="nav-container">
-      <a href="#" class="brand">
-        <span class="brand-mark">🎯</span>
-        <span>AimPoint</span>
-      </a>
-      <div class="nav-menu">
-        <a href="#modes" class="filter-chip">Режимы</a>
-        <button type="button" class="btn-primary trigger-play">Начать тренировку</button>
+  <canvas id="webgl-canvas"></canvas>
+  <div class="crosshair-center"></div>
+
+  <!-- HUD Телеметрия -->
+  <div class="hud-layer">
+    <div class="hud-row">
+      <div class="hud-corner top-left">
+        <div>AIM LAB // KINETIC RANGE 3D</div>
+        <div style="font-size: 9px; opacity: 0.6; margin-top: 3px;">SCENARIO: MICROFLEX-01 | DIFFICULTY: ELITE</div>
+      </div>
+      <div class="hud-corner top-right">
+        <div>SYSTEM ONLINE // <span class="status-active">240 FPS</span></div>
+        <div style="font-size: 9px; opacity: 0.6; margin-top: 3px;">LATENCY: 0.8ms | TICKS: 128</div>
       </div>
     </div>
-  </header>
-
-  <main class="container">
-    <section class="hero">
-      <h1 class="display-headline">Чистая точность. Без лишнего шума.</h1>
-      <p class="hero-lead">
-        Минималистичный тренажёр мыши для тренировки первого выстрела, микродоводки и трекинга. Прямой отклик курсора, мгновенный запуск и ничего лишнего.
-      </p>
-      <div class="hero-cta-group">
-        <button type="button" class="btn-primary trigger-play">Играть бесплатно</button>
-        <a href="#modes" class="btn-secondary">Список сценариев</a>
-      </div>
-    </section>
-
-    <section id="modes" class="masonry-grid">
-      <article class="pin-card">
-        <div class="pin-visual">
-          <span class="pin-overlay-pill">Флики</span>
-          <div style="width: 28px; height: 28px; background: var(--primary); border-radius: var(--radius-full); box-shadow: 0 4px 10px rgba(230, 0, 35, 0.4);"></div>
-        </div>
-        <div class="pin-content">
-          <h2 class="pin-title">Микрофлики</h2>
-          <p class="pin-desc">Тренируй резкий перевод прицела на малые дистанции и мышечную память кисти.</p>
-        </div>
-      </article>
-
-      <article class="pin-card">
-        <div class="pin-visual">
-          <span class="pin-overlay-pill">Плавность</span>
-          <div style="width: 130px; height: 130px; border-radius: 9999px; border: 2px dashed #91918c; display: flex; align-items: center; justify-content: center;">
-            <div style="width: 20px; height: 20px; background: var(--ink); border-radius: 9999px;"></div>
-          </div>
-        </div>
-        <div class="pin-content">
-          <h2 class="pin-title">Плавный трекинг</h2>
-          <p class="pin-desc">Удержание точки на хаотично движущихся целях без рывков и паразитных движений.</p>
-        </div>
-      </article>
-
-      <article class="pin-card">
-        <div class="pin-visual">
-          <span class="pin-overlay-pill">Скорость</span>
-          <div class="stat-display">165<span style="font-size: 24px; color: var(--mute);">мс</span></div>
-        </div>
-        <div class="pin-content">
-          <h2 class="pin-title">Реакция и тайминг</h2>
-          <p class="pin-desc">Выстрел сразу при появлении мишени в поле зрения. Проверка чистого времени отклика.</p>
-        </div>
-      </article>
-
-      <article class="pin-card">
-        <div class="pin-visual">
-          <span class="pin-overlay-pill">1:1 Сенса</span>
-          <div style="text-align: center;">
-            <div style="font-size: 24px; font-weight: 700; color: var(--primary);">CS2 / VAL / APEX</div>
-            <div style="font-size: 13px; color: var(--mute); margin-top: 4px;">Raw Mouse Input</div>
-          </div>
-        </div>
-        <div class="pin-content">
-          <h2 class="pin-title">Конвертер сенсы</h2>
-          <p class="pin-desc">Мгновенный перенос DPI и коэффициентов чувствительности из любого популярного шутера.</p>
-        </div>
-      </article>
-    </section>
-
-    <section id="about" class="feature-card">
-      <div class="feature-text">
-        <h2>Запустил и стреляешь. Без ожидания лобби.</h2>
-        <p>Никаких тяжёлых 3D-движков, обязательных регистраций и рекламы посреди сессии. Каждая серия длится ровно 60 секунд с подсчётом точности до сотых долей процента.</p>
-      </div>
-      <button type="button" class="btn-primary trigger-play" style="height: 48px; padding: 0 24px; font-size: 16px;">Запустить 60s тест</button>
-    </section>
-  </main>
-
-  <div id="gameModal" class="modal-backdrop">
-    <div class="modal-window" id="modalWindow">
-      <div class="loading-hint" id="loadingHint">
-        <div class="spinner"></div>
-        <span>Загрузка сцены...</span>
-      </div>
-
-      <div class="modal-controls">
-        <button type="button" class="modal-btn" id="toggleStretchBtn" title="Растянуть по вкладке">
-          <svg id="stretchExpandIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-          </svg>
-          <svg id="stretchCollapseIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-            <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
-          </svg>
-        </button>
-
-        <button type="button" class="modal-btn" id="toggleNativeFullscreenBtn" title="Во весь экран">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-        </button>
-
-        <button type="button" class="modal-btn" id="closeGameBtn" title="Закрыть">✕</button>
-      </div>
-
-      <iframe 
-        id="gameFrame" 
-        class="game-frame" 
-        src="about:blank" 
-        allow="autoplay; fullscreen; cross-origin-isolated"
-        credentialless>
-      </iframe>
+    <div class="hud-row">
+      <div class="hud-corner bottom-left"><div>TARGET LOCK PROTOCOL // ACTIVE</div></div>
+      <div class="hud-corner bottom-right"><div>CALIBRATION: <span class="status-active">100% OK</span></div></div>
     </div>
   </div>
 
-  <footer class="footer">
-    <p>© 2026 AimPoint. Создано по принципам нейтрального хрома и фокусировки на цели.</p>
-  </footer>
+  <div class="scroll-hint">▼ СКРОЛЛ ДЛЯ ТЕЛЕМЕТРИИ СИСТЕМЫ ▼</div>
+
+  <!-- Нижний блок при прокрутке страницы -->
+  <main class="content-stream">
+    <div class="specs-grid">
+      <div class="spec-card">
+        <div class="spec-num">MOD_01 // MOTOR SKILLS</div>
+        <h3 class="spec-title">Микродоводка и флики</h3>
+        <p class="spec-desc">Тестирование кинематической реакции и точности мышечной памяти кисти на сверхмалых угловых дистанциях.</p>
+      </div>
+      <div class="spec-card">
+        <div class="spec-num">MOD_02 // RAW INPUT</div>
+        <h3 class="spec-title">Нулевая задержка ввода</h3>
+        <p class="spec-desc">Прямой опрос курсора через Pointer Lock API без сглаживания и паразитной акселерации операционной системы.</p>
+      </div>
+      <div class="spec-card">
+        <div class="spec-num">MOD_03 // KINETIC CORE</div>
+        <h3 class="spec-title">Изолированный WebAssembly</h3>
+        <p class="spec-desc">Сборка на движке Godot с поддержкой SharedArrayBuffer и низкоуровневых аудио-ворклетов для точности 1:1.</p>
+      </div>
+    </div>
+
+    <!-- Кнопка запуска при полном скролле вниз -->
+    <div class="bottom-cta-box">
+      <h2>ГОТОВ К КАЛИБРОВКЕ?</h2>
+      <p>Запуск сценария без загрузки лобби и ожидания. Прямой отклик и мгновенный старт сессии.</p>
+      <button type="button" class="btn-play-trigger btn-bottom-play general-play-trigger">
+        <span>▶</span> НАЧАТЬ ИГРАТЬ
+      </button>
+    </div>
+  </main>
+
+  <!-- Контекстное диалоговое окно -->
+  <div id="targetDialog" class="hud-dialog">
+    <div class="dialog-header" id="dialogTitle">TARGET: LOCK_01</div>
+    <div class="dialog-meta" id="dialogDesc">ДИСТАНЦИЯ: 2.5M<br>ЗОНА: PRIMARY / CORE</div>
+    <button type="button" class="btn-play-trigger general-play-trigger" id="launchGameBtn">
+      <span>▶</span> НАЧАТЬ ИГРАТЬ
+    </button>
+  </div>
+
+  <!-- Модальное окно игры -->
+  <div id="gameModal" class="modal-backdrop">
+    <div class="modal-window" id="modalWindow">
+      <div class="loading-hint" id="loadingHint"><div class="spinner"></div><span>ИНИЦИАЛИЗАЦИЯ СЦЕНЫ...</span></div>
+      <div class="modal-controls">
+        <button type="button" class="modal-btn" id="toggleStretchBtn" title="Растянуть">
+          <svg id="stretchExpandIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          <svg id="stretchCollapseIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:none;"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>
+        </button>
+        <button type="button" class="modal-btn" id="toggleNativeFullscreenBtn" title="Во весь экран">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button type="button" class="modal-btn" id="closeGameBtn" title="Закрыть">✕</button>
+      </div>
+      <iframe id="gameFrame" class="game-frame" src="about:blank" allow="autoplay; fullscreen; cross-origin-isolated"></iframe>
+    </div>
+  </div>
 
   <script>
-    const playButtons = document.querySelectorAll('.trigger-play');
+    // --- 1. THREE.JS 3D СЦЕНА ---
+    const canvas = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x030712);
+    scene.fog = new THREE.FogExp2(0x030712, 0.04);
+
+    const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 7.2);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    scene.add(new THREE.AmbientLight(0x0a1626, 1.4));
+    const dirLight = new THREE.DirectionalLight(0xd0e8ff, 1.0);
+    dirLight.position.set(6, 12, 8);
+    scene.add(dirLight);
+
+    const grid = new THREE.GridHelper(60, 50, 0x00e5ff, 0x062238);
+    grid.position.y = -3.8;
+    grid.material.depthWrite = false;
+    scene.add(grid);
+
+    // ГЕНЕРАТОР ТЕКСТУР ВЫСОКОГО РАЗРЕШЕНИЯ (4096x2048) БЕЗ ШВА И СРЕЗАННЫХ ГРАДИЕНТОВ
+    function makeUltraTargetTextures(isCyan) {
+      const W = 4096, H = 2048;
+      const cx = W * 0.25, cy = H * 0.5;
+
+      const gen = (drawFn) => {
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        drawFn(ctx);
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.generateMipmaps = true;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy() || 16;
+        return tex;
+      };
+
+      const baseColor = isCyan ? '#061726' : '#22060b';
+      const neonColor = isCyan ? '#00e5ff' : '#ff2a55';
+      const rings = [680, 420, 230];
+
+      const map = gen(ctx => {
+        // Единый базовый цвет по всей поверхности сферы — убирает резкий срез на второй половине
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, W, H);
+
+        // Мягкий, широкий градиент вокруг мишени, плавно переходящий в baseColor без шва
+        const grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, 950);
+        grad.addColorStop(0, isCyan ? '#103e61' : '#5e1022');
+        grad.addColorStop(0.35, isCyan ? '#0a273d' : '#3b0a15');
+        grad.addColorStop(0.75, isCyan ? '#071d2e' : '#2a070f');
+        grad.addColorStop(1.0, baseColor); // 100% совпадение с фоном исключает шов на стыке
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 950, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Сквозной горизонтальный экватор на 360 градусов
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, cy - 16, W, 32);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.fillRect(0, cy + 16, W, 4);
+
+        // Высокоточные кольца мишени без ступенек
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        rings.forEach((r, i) => {
+          ctx.lineWidth = 26 - i * 4;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        // Центральное ядро
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 96, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      const emissiveMap = gen(ctx => {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.shadowColor = neonColor;
+        ctx.shadowBlur = 50;
+
+        rings.forEach((r, i) => {
+          ctx.lineWidth = 26 - i * 4;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 65;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 96, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      return { map, emissiveMap };
+    }
+
+    const sphereGeom = new THREE.SphereGeometry(1, 64, 64);
+    const targetObjects = [];
+    let redSphereMesh = null;
+
+    const SPHERES_DATA = [
+      { r: 1.85, pos: [2.2, 0.45, 1.8], cyan: true, title: "TARGET: LOCK_01", meta: "ДИСТАНЦИЯ: 2.5M<br>РЕЖИМ: ТРЕКИНГ", interactive: true, rotY: 0, rotX: 0 },
+      { r: 2.35, pos: [-2.2, -1.45, 2.8], cyan: false, title: "SECTOR: CRITICAL_02", meta: "ДИСТАНЦИЯ: 1.2M<br>РЕЖИМ: ФЛИКИ", interactive: true, rotY: 0.32, rotX: -0.6, isRedMain: true },
+      { r: 0.5, pos: [-3.2, 2.0, -1.0], cyan: true },
+      { r: 0.42, pos: [-0.3, 1.7, -1.2], cyan: false },
+      { r: 0.65, pos: [4.6, 1.8, -1.8], cyan: true }
+    ];
+
+    SPHERES_DATA.forEach(d => {
+      const tex = makeUltraTargetTextures(d.cyan);
+      const mesh = new THREE.Mesh(sphereGeom, new THREE.MeshStandardMaterial({
+        map: tex.map,
+        emissiveMap: tex.emissiveMap,
+        emissive: new THREE.Color(d.cyan ? 0x00e5ff : 0xff2a55),
+        emissiveIntensity: 0.85,
+        roughness: 0.35,
+        metalness: 0.15
+      }));
+
+      mesh.scale.setScalar(d.r);
+      mesh.position.set(...d.pos);
+      mesh.rotation.set(d.rotX || 0, d.rotY || 0, 0);
+
+      mesh.userData = {
+        baseScale: d.r, targetScale: d.r, rotSpeed: 0,
+        baseRotY: d.rotY || 0, baseRotX: d.rotX || 0,
+        isCyan: d.cyan, title: d.title, meta: d.meta, interactive: d.interactive
+      };
+
+      scene.add(mesh);
+
+      if (d.interactive) {
+        const light = new THREE.PointLight(d.cyan ? 0x00e5ff : 0xff2a55, 2.2, 8.5);
+        light.position.set(...d.pos);
+        scene.add(light);
+
+        const spot = new THREE.Mesh(new THREE.PlaneGeometry(d.r * 2.2, d.r * 2.2), new THREE.MeshBasicMaterial({
+          color: d.cyan ? 0x00e5ff : 0xff2a55, transparent: true, opacity: 0.28, depthWrite: false
+        }));
+        spot.rotation.x = -Math.PI / 2;
+        spot.position.set(d.pos[0], -3.78, d.pos[2]);
+        scene.add(spot);
+
+        targetObjects.push(mesh);
+        if (d.isRedMain) redSphereMesh = mesh;
+      }
+    });
+
+    // --- 2. ИНТЕРАКТИВНОСТЬ, СКРОЛЛ И НАДЁЖНЫЙ КЛИК ---
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(-100, -100);
+    let activeTarget = null, isHoveringDialog = false, closeTimer = null;
+
+    const dialog = document.getElementById('targetDialog');
+    const dialogTitle = document.getElementById('dialogTitle');
+    const dialogDesc = document.getElementById('dialogDesc');
+
+    dialog.onmouseenter = () => { isHoveringDialog = true; clearTimeout(closeTimer); };
+    dialog.onmouseleave = () => {
+      isHoveringDialog = false;
+      closeTimer = setTimeout(() => { if (!isHoveringDialog) activeTarget = null; }, 400);
+    };
+
+    window.addEventListener('mousemove', e => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(targetObjects);
+      if (hits.length > 0) {
+        clearTimeout(closeTimer);
+        activeTarget = hits[0].object;
+        document.body.style.cursor = 'pointer';
+      } else if (!isHoveringDialog) {
+        document.body.style.cursor = 'default';
+        if (!closeTimer) closeTimer = setTimeout(() => { if (!isHoveringDialog) activeTarget = null; closeTimer = null; }, 400);
+      }
+    });
+
+    // Делегированный обработчик клика — надёжно запускает игру без перехвата
+    document.addEventListener('click', e => {
+      const playBtn = e.target.closest('.general-play-trigger') || e.target.closest('#launchGameBtn');
+      if (playBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        launchGame();
+        return;
+      }
+
+      if (e.target.closest('#targetDialog') || e.target.closest('#modalWindow')) return;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(targetObjects);
+      if (hits.length > 0) activeTarget = hits[0].object;
+    });
+
+    const tempVec = new THREE.Vector3();
+    function toScreenPos(obj) {
+      obj.getWorldPosition(tempVec);
+      tempVec.project(camera);
+      return { x: (tempVec.x * 0.5 + 0.5) * window.innerWidth, y: (-(tempVec.y * 0.5) + 0.5) * window.innerHeight };
+    }
+
+    let lastScrollY = window.scrollY;
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // 1. Движение камеры вниз при скролле
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+      camera.position.y = THREE.MathUtils.lerp(camera.position.y, -progress * 1.85, 0.08);
+
+      // 2. Вращение красной сферы пропорционально прокрутке страницы
+      const scrollDelta = window.scrollY - lastScrollY;
+      lastScrollY = window.scrollY;
+
+      if (redSphereMesh && Math.abs(scrollDelta) > 0.1) {
+        redSphereMesh.rotation.y += scrollDelta * 0.0035;
+      }
+
+      // 3. Вращение сфер при наведении мыши (сохраняя текущий угол)
+      targetObjects.forEach(mesh => {
+        const isHovered = (mesh === activeTarget);
+        mesh.userData.rotSpeed = THREE.MathUtils.lerp(mesh.userData.rotSpeed, isHovered ? 0.02 : 0, isHovered ? 0.08 : 0.05);
+        if (mesh.userData.rotSpeed > 0.0001) mesh.rotation.y += mesh.userData.rotSpeed;
+
+        mesh.userData.targetScale = isHovered ? mesh.userData.baseScale * 1.03 : mesh.userData.baseScale;
+        mesh.scale.lerp(new THREE.Vector3().setScalar(mesh.userData.targetScale), 0.1);
+      });
+
+      // 4. Позиционирование диалогового меню
+      if (activeTarget) {
+        if (!isHoveringDialog) {
+          const sPos = toScreenPos(activeTarget);
+          const dist = camera.position.distanceTo(activeTarget.position);
+          const vFOV = (camera.fov * Math.PI) / 180;
+          const dia = (2 * activeTarget.scale.x / (2 * Math.tan(vFOV / 2) * dist)) * window.innerHeight;
+          let left = sPos.x + (dia / 2) * 0.65 + 24;
+          if (left + 260 > window.innerWidth) left = sPos.x - (dia / 2) * 0.65 - 260;
+
+          dialog.style.left = Math.max(16, left) + 'px';
+          dialog.style.top = Math.max(120, Math.min(window.innerHeight - 170, sPos.y)) + 'px';
+          dialogTitle.innerHTML = activeTarget.userData.title;
+          dialogDesc.innerHTML = activeTarget.userData.meta;
+          dialog.className = 'hud-dialog active ' + (activeTarget.userData.isCyan ? '' : 'red-theme');
+        }
+      } else {
+        dialog.classList.remove('active');
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- 3. ЗАПУСК ИГРЫ (ПК / МОБИЛЬНЫЕ) И WATCHDOG ВЫХОДА ---
     const modal = document.getElementById('gameModal');
     const modalWindow = document.getElementById('modalWindow');
-    const closeBtn = document.getElementById('closeGameBtn');
-    const toggleStretchBtn = document.getElementById('toggleStretchBtn');
-    const toggleNativeFullscreenBtn = document.getElementById('toggleNativeFullscreenBtn');
-    const stretchExpandIcon = document.getElementById('stretchExpandIcon');
-    const stretchCollapseIcon = document.getElementById('stretchCollapseIcon');
     let gameFrame = document.getElementById('gameFrame');
     const loadingHint = document.getElementById('loadingHint');
+    let isStretched = false, watchdogTimer = null;
 
-    let isStretched = false;
-
-    // Надёжное определение смартфонов и планшетов без ограничения по ширине
     function checkIsMobile() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
       const isIPadTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isTouchScreen = window.matchMedia('(pointer: coarse)').matches;
+      const isTouchScreen = window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024;
       return isMobileUA || isIPadTouch || isTouchScreen;
     }
 
-    function setupGameHooks(cw) {
-      if (!cw || cw._hooksAttached) return;
-      cw._hooksAttached = true;
-
-      const origRAF = cw.requestAnimationFrame;
-      if (origRAF) {
-        cw.requestAnimationFrame = function(callback) {
-          return origRAF.call(cw, function(timestamp) {
-            if (loadingHint) loadingHint.style.opacity = '0';
-            callback(timestamp);
-          });
-        };
-      }
+    function isClose(d) {
+      if (!d) return false;
+      if (d === 'close_game' || d === 'quit' || d === 'exit') return true;
+      if (typeof d === 'string') return d.includes('close_game') || d === 'quit' || d === 'exit';
+      return typeof d === 'object' && (d.type === 'close_game' || d.status === 'quit');
     }
 
-    // Привязываем onload к iframe, чтобы работало и после пересоздания
     function attachFrameEvents(frame) {
       frame.onload = () => {
-        try {
-          setupGameHooks(frame.contentWindow);
-          frame.focus();
-          if (frame.contentWindow) frame.contentWindow.focus();
-        } catch (e) {}
+        if (!frame.src.endsWith('about:blank')) {
+          setTimeout(() => { if (loadingHint) loadingHint.style.display = 'none'; }, 600);
+          try {
+            const cw = frame.contentWindow;
+            if (cw) {
+              frame.focus(); cw.focus();
+              cw.addEventListener('message', e => { if (isClose(e.data)) stopGame(); });
+              
+              // Перехват выхода из движка Godot (ExitStatus)
+              cw.addEventListener('error', e => {
+                const m = (e.message || '') + '';
+                if (m.includes('ExitStatus') || m.includes('exit(0)')) stopGame();
+              });
+
+              // Щадящий watchdog: срабатывает только если игра уже шла и полностью зависла при выходе
+              let last = performance.now(), ran = false, cnt = 0;
+              const raf = cw.requestAnimationFrame;
+              if (raf) {
+                cw.requestAnimationFrame = cb => raf.call(cw, t => { last = performance.now(); if (++cnt > 60) ran = true; cb(t); });
+              }
+              if (watchdogTimer) clearInterval(watchdogTimer);
+              watchdogTimer = setInterval(() => {
+                if (modal.style.display === 'flex' && ran && performance.now() - last > 1800) stopGame();
+              }, 300);
+
+              cw.addEventListener('unload', stopGame);
+            }
+          } catch (e) {}
+        }
       };
     }
-
     attachFrameEvents(gameFrame);
 
-    function toggleStretchMode() {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
-      isStretched = !isStretched;
-      if (isStretched) {
-        modal.classList.add('is-stretched-view');
-        modalWindow.classList.add('is-stretched-view');
-        stretchExpandIcon.style.display = 'none';
-        stretchCollapseIcon.style.display = 'block';
-      } else {
-        modal.classList.remove('is-stretched-view');
-        modalWindow.classList.remove('is-stretched-view');
-        stretchExpandIcon.style.display = 'block';
-        stretchCollapseIcon.style.display = 'none';
-      }
-      if (gameFrame) gameFrame.focus();
-    }
-
-    async function toggleNativeFullscreen() {
-      try {
-        if (!document.fullscreenElement) {
-          modal.classList.remove('is-stretched-view');
-          modalWindow.classList.remove('is-stretched-view');
-          isStretched = false;
-          stretchExpandIcon.style.display = 'block';
-          stretchCollapseIcon.style.display = 'none';
-
-          if (modalWindow.requestFullscreen) {
-            await modalWindow.requestFullscreen();
-          } else if (modalWindow.webkitRequestFullscreen) {
-            await modalWindow.webkitRequestFullscreen();
-          }
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch (e) {}
-      if (gameFrame) gameFrame.focus();
-    }
-
     function launchGame() {
-      // 1. Мобильные: безусловный прямой переход
+      // 1. Мобильные: прямой переход
       if (checkIsMobile()) {
         window.location.href = 'aimtrainer_mobile.html';
         return;
       }
 
-      // 2. ПК: модальное окно
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
-      isStretched = false;
-      if (loadingHint) loadingHint.style.opacity = '1';
-
-      modal.classList.remove('is-stretched-view');
-      modalWindow.classList.remove('is-stretched-view');
-      stretchExpandIcon.style.display = 'block';
-      stretchCollapseIcon.style.display = 'none';
-
+      // 2. Десктоп: модальное окно
+      if (loadingHint) loadingHint.style.display = 'flex';
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
-
       gameFrame.src = 'aimtrainer.html';
     }
 
     function stopGame() {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
-
+      if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = null; }
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       modal.style.display = 'none';
       document.body.style.overflow = '';
-      isStretched = false;
-      modal.classList.remove('is-stretched-view');
-      modalWindow.classList.remove('is-stretched-view');
-
-      try {
-        gameFrame.src = 'about:blank';
-      } catch (e) {}
+      try { gameFrame.src = 'about:blank'; } catch (e) {}
       const parent = gameFrame.parentNode;
-      const oldFrame = gameFrame;
-      const newFrame = oldFrame.cloneNode(false);
-      newFrame.src = 'about:blank';
-      
-      // Заново привязываем обработчик событий к новому узлу
-      attachFrameEvents(newFrame);
-      
-      parent.replaceChild(newFrame, oldFrame);
-      gameFrame = newFrame;
+      const nf = gameFrame.cloneNode(false);
+      nf.src = 'about:blank';
+      attachFrameEvents(nf);
+      parent.replaceChild(nf, gameFrame);
+      gameFrame = nf;
     }
 
-    window.addEventListener('message', (event) => {
-      if (event.data && (event.data.type === 'close_game' || event.data === 'close_game')) {
-        stopGame();
-      }
-    });
+    window.addEventListener('message', e => { if (isClose(e.data)) stopGame(); });
 
-    playButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        launchGame();
-      });
-    });
+    document.getElementById('toggleStretchBtn').onclick = () => {
+      isStretched = !isStretched;
+      modal.classList.toggle('is-stretched-view', isStretched);
+      modalWindow.classList.toggle('is-stretched-view', isStretched);
+      document.getElementById('stretchExpandIcon').style.display = isStretched ? 'none' : 'block';
+      document.getElementById('stretchCollapseIcon').style.display = isStretched ? 'block' : 'none';
+    };
 
-    toggleStretchBtn.addEventListener('click', toggleStretchMode);
-    toggleNativeFullscreenBtn.addEventListener('click', toggleNativeFullscreen);
-    closeBtn.addEventListener('click', stopGame);
+    document.getElementById('toggleNativeFullscreenBtn').onclick = () => {
+      if (!document.fullscreenElement) modalWindow.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    };
 
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'flex') {
-        if (document.fullscreenElement) return;
-        if (isStretched) {
-          toggleStretchMode();
-        }
+    document.getElementById('closeGameBtn').onclick = stopGame;
+
+    window.addEventListener('keydown', e => {
+      if (modal.style.display === 'flex' && e.key === 'Escape') {
+        if (!document.fullscreenElement && isStretched) document.getElementById('toggleStretchBtn').click();
       }
     });
   </script>
