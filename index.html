@@ -552,13 +552,13 @@
 
     let isStretched = false;
 
-    // Определение смартфонов и планшетов
+    // Надёжное определение смартфонов и планшетов без ограничения по ширине
     function checkIsMobile() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
       const isIPadTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isSmallScreen = window.matchMedia('(pointer: coarse) and (max-width: 900px)').matches;
-      return isMobileUA || isIPadTouch || isSmallScreen;
+      const isTouchScreen = window.matchMedia('(pointer: coarse)').matches;
+      return isMobileUA || isIPadTouch || isTouchScreen;
     }
 
     function setupGameHooks(cw) {
@@ -575,6 +575,19 @@
         };
       }
     }
+
+    // Привязываем onload к iframe, чтобы работало и после пересоздания
+    function attachFrameEvents(frame) {
+      frame.onload = () => {
+        try {
+          setupGameHooks(frame.contentWindow);
+          frame.focus();
+          if (frame.contentWindow) frame.contentWindow.focus();
+        } catch (e) {}
+      };
+    }
+
+    attachFrameEvents(gameFrame);
 
     function toggleStretchMode() {
       if (document.fullscreenElement) {
@@ -617,7 +630,7 @@
     }
 
     function launchGame() {
-      // 1. Мобильные: прямой переход
+      // 1. Мобильные: безусловный прямой переход
       if (checkIsMobile()) {
         window.location.href = 'aimtrainer_mobile.html';
         return;
@@ -639,17 +652,8 @@
       document.body.style.overflow = 'hidden';
 
       gameFrame.src = 'aimtrainer.exe.html';
-
-      gameFrame.onload = () => {
-        try {
-          setupGameHooks(gameFrame.contentWindow);
-          gameFrame.focus();
-          if (gameFrame.contentWindow) gameFrame.contentWindow.focus();
-        } catch (e) {}
-      };
     }
 
-    // Полная остановка игры и принудительная очистка оперативной памяти
     function stopGame() {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
@@ -661,23 +665,21 @@
       modal.classList.remove('is-stretched-view');
       modalWindow.classList.remove('is-stretched-view');
 
-      // 1. Сбрасываем текущий фрейм
       try {
         gameFrame.src = 'about:blank';
       } catch (e) {}
-
-      // 2. Полное удаление и пересоздание узла iframe для освобождения памяти (WASM, Audio, WebGL)
       const parent = gameFrame.parentNode;
       const oldFrame = gameFrame;
       const newFrame = oldFrame.cloneNode(false);
       newFrame.src = 'about:blank';
+      
+      // Заново привязываем обработчик событий к новому узлу
+      attachFrameEvents(newFrame);
+      
       parent.replaceChild(newFrame, oldFrame);
-
-      // 3. Обновляем переменную gameFrame на новый чистый элемент
       gameFrame = newFrame;
     }
 
-    // Приём сигнала 'close_game' от Godot при нажатии «Выход» в меню паузы
     window.addEventListener('message', (event) => {
       if (event.data && (event.data.type === 'close_game' || event.data === 'close_game')) {
         stopGame();
